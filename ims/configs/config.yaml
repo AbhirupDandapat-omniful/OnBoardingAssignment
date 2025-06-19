@@ -1,0 +1,32 @@
+server:
+  port:         8081
+  readTimeout:  10s
+  writeTimeout: 10s
+  idleTimeout:  30s
+
+log:
+  level: info
+
+env: local
+
+postgres:
+  primary:
+    host:                       "localhost"   # since you run Go on your laptop
+    port:                       5432
+    username:                   "postgres"
+    password:                   "password"
+    database:                   "ims_db"
+    debug_mode:                 false
+    prepare_stmt:               false
+    skip_default_transaction:   false
+
+  replicas: []                  # no replicas for now
+
+  pool:
+    max_open_conns:    50
+    max_idle_conns:    10
+    conn_max_lifetime: 1h
+
+redis:
+  endpoint: "localhost:6379"    # Redis on your laptop
+  db:        0
