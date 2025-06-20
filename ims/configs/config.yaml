@@ -11,7 +11,7 @@ env: local
 
 postgres:
   primary:
-    host:                       "localhost"   # since you run Go on your laptop
+    host:                       "localhost"   
     port:                       5432
     username:                   "postgres"
     password:                   "password"
@@ -20,7 +20,7 @@ postgres:
     prepare_stmt:               false
     skip_default_transaction:   false
 
-  replicas: []                  # no replicas for now
+  replicas: []                 
 
   pool:
     max_open_conns:    50
@@ -28,5 +28,5 @@ postgres:
     conn_max_lifetime: 1h
 
 redis:
-  endpoint: "localhost:6379"    # Redis on your laptop
+  endpoint: "localhost:6379"    
   db:        0
