@@ -16,12 +16,11 @@ sqs:
   endpoint:          http://localhost:4566
   account:           "000000000000"
   bulkOrderQueueUrl: http://localhost:4566/000000000000/CreateBulkOrder
-
   consumer:
-    workerCount:         1   
-    concurrencyPerWorker: 1   
-    batchSize:           1   
-    visibilityTimeout:   30   
+    workerCount:         1
+    concurrencyPerWorker: 1
+    batchSize:           1
+    visibilityTimeout:   30
 
 mongo:
   uri: mongodb://localhost:27017/omsdb
@@ -30,7 +29,11 @@ redis:
   addrs: [localhost:6379]
 
 kafka:
-  brokers: [localhost:9092]
+  brokers:
+    - localhost:9092
+  clientId: "oms-producer"
+  topicOrderCreated: "order.created"
+  version: "2.8.0"
 
 postgres:
   uri: postgres://postgres:password@localhost:5432/omsdb?sslmode=disable
@@ -38,7 +41,9 @@ postgres:
 env: development
 
 s3:
-  endpoint:     http://localhost:4566  # optional, env var takes precedence
+  endpoint:     http://localhost:4566
   region:       us-east-1
   uploadBucket: my-bucket
 
+ims:
+  baseUrl: http://localhost:8081
