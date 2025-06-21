@@ -22,6 +22,10 @@ sqs:
     batchSize:           1
     visibilityTimeout:   30
 
+finalizer:
+  groupID:      "oms-finalizer"
+  clientID:     "oms-finalizer"
+
 mongo:
   uri: mongodb://localhost:27017/omsdb
 
@@ -34,6 +38,7 @@ kafka:
   clientId: "oms-producer"
   topicOrderCreated: "order.created"
   version: "2.8.0"
+  groupId: "oms-finalizer-group"
 
 postgres:
   uri: postgres://postgres:password@localhost:5432/omsdb?sslmode=disable
