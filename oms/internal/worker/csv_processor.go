@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io"
 	"path"
 	"strconv"
 	"time"
@@ -114,7 +113,7 @@ func (h *queueHandler) Process(ctx context.Context, msgs *[]sqs.Message) error {
 			if _, err := s3Client.PutObject(ctx, &awss3.PutObjectInput{
 				Bucket: awsV2.String(evt.Bucket),
 				Key:    awsV2.String(errKey),
-				Body:   io.NopCloser(buf),
+				Body:   bytes.NewReader(buf.Bytes()),
 			}); err != nil {
 				logger.Errorf("upload invalid CSV: %v", err)
 			} else {

@@ -3,11 +3,11 @@ package models
 import "time"
 
 type Inventory struct {
-    HubID            string    `db:"hub_id"              json:"hub_id"`
-    SKUID            string    `db:"sku_id"              json:"sku_id"`
-    QuantityOnHand   int64     `db:"quantity"            json:"quantity"`
-    QuantityReserved int64     `db:"quantity_reserved"   json:"quantity_reserved"`
-    MinThreshold     int64     `db:"min_threshold"       json:"min_threshold"`
-    MaxThreshold     int64     `db:"max_threshold"       json:"max_threshold"`
-    UpdatedAt        time.Time `db:"updated_at"          json:"updated_at"`
+	HubID            string    `json:"hub_id"            gorm:"column:hub_id"`
+	SKUID            string    `json:"sku_id"            gorm:"column:sku_id"`
+	QuantityOnHand   int64     `json:"quantity_on_hand"  gorm:"column:quantity_on_hand"`
+	QuantityReserved int64     `json:"quantity_reserved" gorm:"column:quantity_reserved"`
+	MinThreshold     int64     `json:"min_threshold"     gorm:"column:min_threshold"`
+	MaxThreshold     int64     `json:"max_threshold"     gorm:"column:max_threshold"`
+	UpdatedAt        time.Time `json:"updated_at"        gorm:"column:updated_at"`
 }
