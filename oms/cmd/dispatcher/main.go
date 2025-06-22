@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/abhirup.dandapat/oms/internal/finalizer"
+	"github.com/abhirup.dandapat/oms/internal/dispatcher"
 )
 
 func main() {
@@ -25,50 +25,54 @@ func main() {
 		log.DefaultLogger().Panicf("getting config context failed: %v", err)
 	}
 
-	log.DefaultLogger().Info("Starting Order Finalizer…")
+	log.DefaultLogger().Info("Starting Webhook Dispatcher…")
 
-	// 2) HTTP client for IMS
-	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	baseURL := config.GetString(ctx, "ims.baseUrl")
-	httpClient, err := commonsHttp.NewHTTPClient(
-		config.GetString(ctx, "finalizer.clientID"),
-		baseURL,
-		transport,
-	)
-	if err != nil {
-		log.DefaultLogger().Panicf("http client init failed: %v", err)
-	}
-
-	// 3) Mongo orders collection
+	// 2) Mongo for webhooks
 	mongoURI := config.GetString(ctx, "mongo.uri")
 	mcli, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		log.DefaultLogger().Panicf("mongo connect failed: %v", err)
 	}
-	ordersColl := mcli.Database("omsdb").Collection("orders")
+	coll := mcli.Database("omsdb").Collection("webhooks")
 
-	// 4) Kafka producer (for publishing order.updated)
+	// 3) HTTP client
+	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	httpClient, err := commonsHttp.NewHTTPClient(
+		config.GetString(ctx, "kafka.clientId"),
+		"", transport,
+	)
+	if err != nil {
+		log.DefaultLogger().Panicf("http client init failed: %v", err)
+	}
+
+	// 4) Kafka producer
 	producer := kafka.NewProducer(
 		kafka.WithBrokers(config.GetStringSlice(ctx, "kafka.brokers")),
 		kafka.WithClientID(config.GetString(ctx, "kafka.clientId")+"-producer"),
 		kafka.WithKafkaVersion(config.GetString(ctx, "kafka.version")),
 	)
 
-	// 5) Build + wrap your handler
-	rawH := finalizer.NewHandler(ordersColl, httpClient, producer)
-	retryH := finalizer.NewRetryHandler(rawH, 3, 1*time.Second)
-
-	// 6) Kafka consumer (subscribe to order.created)
+	// 5) Kafka consumer
 	consumer := kafka.NewConsumer(
 		kafka.WithBrokers(config.GetStringSlice(ctx, "kafka.brokers")),
-		kafka.WithConsumerGroup(config.GetString(ctx, "finalizer.groupID")),
-		kafka.WithClientID(config.GetString(ctx, "finalizer.clientID")),
+		kafka.WithConsumerGroup(config.GetString(ctx, "kafka.groupId")),
+		kafka.WithClientID(config.GetString(ctx, "kafka.clientId")),
 		kafka.WithKafkaVersion(config.GetString(ctx, "kafka.version")),
 	)
-	topic := config.GetString(ctx, "finalizer.topicCreated")
-	consumer.RegisterHandler(topic, retryH)
 
-	// 7) Start
+	// 6) Topics
+	createdTopic := config.GetString(ctx, "kafka.topicOrderCreated")
+	updatedTopic := config.GetString(ctx, "kafka.topicOrderUpdated")
+	failedTopic := config.GetString(ctx, "kafka.topicWebhookFailed")
+
+	// 7) Build & wrap dispatcher
+	rawDisp := dispatcher.NewDispatcher(coll, httpClient, producer, failedTopic)
+	retryDisp := dispatcher.NewRetryHandler(rawDisp, 3, time.Second)
+
+	consumer.RegisterHandler(createdTopic, retryDisp)
+	consumer.RegisterHandler(updatedTopic, retryDisp)
+
+	// 8) Start consuming
 	consumer.Subscribe(ctx)
 
 	// block forever
