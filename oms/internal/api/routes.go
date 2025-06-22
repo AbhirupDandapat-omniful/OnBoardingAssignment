@@ -7,6 +7,10 @@ func RegisterRoutes(r *gin.Engine) {
 	r.POST("/orders/upload", UploadCSV)
 	r.GET("/orders/errors/:file", DownloadErrorCSV)
 
-	// New: filtered order-list endpoint
 	r.GET("/orders", ListOrders)
+	r.POST("/webhooks", createWebhook)
+	r.GET("/webhooks/:id", getWebhook)
+	r.GET("/webhooks", listWebhooks)
+	r.PUT("/webhooks/:id", updateWebhook)
+	r.DELETE("/webhooks/:id", deleteWebhook)
 }
