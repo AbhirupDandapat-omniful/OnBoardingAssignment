@@ -45,23 +45,25 @@ func NewDispatcher(
 	}
 }
 
-// Process implements pubsub.IPubSubMessageHandler
+// Process implements pubsub.IPubSubMessageHandler.
 func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 	eventType := msg.Topic
 
+	// decode Kafka payload
 	var payload map[string]interface{}
 	if err := json.Unmarshal(msg.Value, &payload); err != nil {
 		d.logger.Errorf("invalid JSON payload: %v", err)
 		return err
 	}
 
-	// ← key must be "tenant_id"
+	// ← **FIXED**: look for "tenant_id" not "tenantId"
 	tenantID, ok := payload["tenant_id"].(string)
 	if !ok {
 		d.logger.Errorf("missing tenant_id in payload")
 		return nil
 	}
 
+	// find matching, active webhooks
 	filter := bson.M{
 		"tenant_id": tenantID,
 		"is_active": true,
@@ -80,6 +82,7 @@ func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 		return err
 	}
 	if len(whs) == 0 {
+		d.logger.Debugf("no webhooks for tenant %s + event %s", tenantID, eventType)
 		return nil
 	}
 
@@ -93,6 +96,7 @@ func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 		for k, v := range w.Headers {
 			hdrs.Add(k, v)
 		}
+
 		req := &commonsHttp.Request{
 			Url:     w.CallbackURL,
 			Body:    body,
@@ -100,7 +104,10 @@ func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 			Headers: hdrs,
 		}
 		if _, err := d.httpClient.Post(req, nil); err != nil {
-			d.logger.Warnf("webhook POST failed (%s → %s): %v", w.ID, w.CallbackURL, err)
+			d.logger.Warnf("webhook POST failed (%s→%s): %v",
+				w.ID, w.CallbackURL, err,
+			)
+			// push to failedTopic
 			dead := map[string]interface{}{
 				"webhookId":   w.ID,
 				"event":       eventType,
@@ -108,15 +115,15 @@ func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 				"error":       err.Error(),
 				"payload":     payload,
 			}
-			if buf, jerr := json.Marshal(dead); jerr == nil {
-				d.producer.Publish(ctx, &pubsub.Message{
-					Topic: d.failedTopic,
-					Key:   w.ID,
-					Value: buf,
-				})
-			}
+			buf, _ := json.Marshal(dead)
+			d.producer.Publish(ctx, &pubsub.Message{
+				Topic: d.failedTopic,
+				Key:   w.ID,
+				Value: buf,
+			})
 			continue
 		}
+
 		d.logger.Infof("webhook delivered: %s → %s", w.ID, w.CallbackURL)
 	}
 
