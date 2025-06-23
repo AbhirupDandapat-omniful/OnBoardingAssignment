@@ -17,7 +17,6 @@ import (
 
 const updatedTopic = "order.updated"
 
-// Handler finalizes an order: checks/deducts IMS, updates Mongo, emits order.updated.
 type Handler struct {
 	coll      *mongo.Collection
 	client    *commonsHttp.Client
@@ -25,7 +24,6 @@ type Handler struct {
 	logger    *log.Logger
 }
 
-// NewHandler constructs a Handler.
 func NewHandler(
 	coll *mongo.Collection,
 	client *commonsHttp.Client,
@@ -39,9 +37,7 @@ func NewHandler(
 	}
 }
 
-// Process implements pubsub.IPubSubMessageHandler.
 func (h *Handler) Process(ctx context.Context, msg *pubsub.Message) error {
-	// 1) Decode order.created payload
 	var oc models.OrderCreated
 	if err := json.Unmarshal(msg.Value, &oc); err != nil {
 		h.logger.Errorf("invalid payload: %v", err)
@@ -49,7 +45,6 @@ func (h *Handler) Process(ctx context.Context, msg *pubsub.Message) error {
 	}
 	h.logger.Infof("Finalizing order %s", oc.OrderID)
 
-	// 2) GET inventory from IMS
 	getReq := &commonsHttp.Request{
 		Url:     fmt.Sprintf("/inventory?hub_id=%s&sku_ids=%s", oc.HubID, oc.SKUID),
 		Timeout: 5 * time.Second,
@@ -71,7 +66,6 @@ func (h *Handler) Process(ctx context.Context, msg *pubsub.Message) error {
 		return nil
 	}
 
-	// 3) PUT to deduct
 	putReq := &commonsHttp.Request{
 		Url: "/inventory",
 		Body: map[string]interface{}{
@@ -87,7 +81,6 @@ func (h *Handler) Process(ctx context.Context, msg *pubsub.Message) error {
 		return err
 	}
 
-	// 4) Update Mongo
 	if _, err := h.coll.UpdateOne(ctx,
 		bson.M{"_id": oc.OrderID},
 		bson.M{"$set": bson.M{"status": "new_order", "updated_at": time.Now().UTC()}},
@@ -97,7 +90,6 @@ func (h *Handler) Process(ctx context.Context, msg *pubsub.Message) error {
 	}
 	h.logger.Infof("Order %s → new_order", oc.OrderID)
 
-	// 5) Publish order.updated
 	evt, _ := json.Marshal(oc)
 	if err := h.publisher.Publish(ctx, &pubsub.Message{
 		Topic: updatedTopic,

@@ -1,0 +1,434 @@
+openapi: 3.0.3
+info:
+  title: GoCommons OMS & IMS APIs
+  version: 1.0.0
+  description: |
+    This document describes the public HTTP endpoints for the OMS (Order Management Service)
+    and the IMS (Inventory Management Service).
+
+servers:
+  - url: http://localhost:8080
+    description: OMS server
+  - url: http://localhost:8081
+    description: IMS server
+
+paths:
+  ## OMS Endpoints
+  /orders/upload:
+    post:
+      summary: Upload a CSV of orders
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Accepted; enqueued for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bucket:
+                    type: string
+                  key:
+                    type: string
+
+  /orders/bulk:
+    post:
+      summary: Trigger a bulk SQS event for a previously uploaded CSV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkOrderRequest'
+      responses:
+        '202':
+          description: Accepted
+
+  /orders:
+    get:
+      summary: List orders with optional filters
+      parameters:
+        - in: query
+          name: tenant_id
+          schema:
+            type: string
+        - in: query
+          name: seller_id
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [on_hold, new_order]
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+
+    post:
+      summary: Create a single order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+
+  /orders/errors/{file}:
+    get:
+      summary: Download invalid-rows CSV from S3
+      parameters:
+        - in: path
+          name: file
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CSV file download
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Not found
+
+  /webhooks:
+    post:
+      summary: Register a new webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+
+    get:
+      summary: List all webhooks
+      responses:
+        '200':
+          description: A list of webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+
+  /webhooks/{id}:
+    get:
+      summary: Get a single webhook by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '404':
+          description: Not found
+    put:
+      summary: Update an existing webhook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+      responses:
+        '200':
+          description: Updated webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    delete:
+      summary: Delete (deactivate) a webhook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  ## IMS Endpoints
+  /inventory:
+    get:
+      summary: Get inventory for one or more SKUs in a hub
+      parameters:
+        - in: query
+          name: hub_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sku_ids
+          required: true
+          schema:
+            type: string
+            description: comma-separated list of SKU IDs
+      responses:
+        '200':
+          description: List of inventory records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Inventory'
+    put:
+      summary: Update (reserve) inventory for a SKU in a hub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryUpdateRequest'
+      responses:
+        '200':
+          description: Updated inventory record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+
+  /skus:
+    get:
+      summary: List SKUs, optionally filtered by tenant, seller, or codes
+      parameters:
+        - in: query
+          name: tenant_id
+          schema:
+            type: string
+        - in: query
+          name: seller_id
+          schema:
+            type: string
+        - in: query
+          name: sku_codes
+          schema:
+            type: string
+            description: comma-separated list of SKU codes
+      responses:
+        '200':
+          description: List of SKUs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SKU'
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        hub_id:
+          type: string
+        sku_id:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [on_hold, new_order]
+        created_at:
+          type: string
+          format: date-time
+
+    CreateOrderRequest:
+      type: object
+      required: [tenant_id,seller_id,hub_id,sku_id,quantity]
+      properties:
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        hub_id:
+          type: string
+        sku_id:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+
+    BulkOrderRequest:
+      type: object
+      required: [bucket,key]
+      properties:
+        bucket:
+          type: string
+        key:
+          type: string
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        callback_url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+            enum: [order.created,order.updated]
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WebhookRequest:
+      type: object
+      required: [tenant_id,callback_url,events]
+      properties:
+        tenant_id:
+          type: string
+        callback_url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+            enum: [order.created,order.updated]
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        is_active:
+          type: boolean
+
+    Inventory:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        hub_id:
+          type: string
+        sku_id:
+          type: string
+        quantity_on_hand:
+          type: integer
+        quantity_reserved:
+          type: integer
+        min_threshold:
+          type: integer
+        max_threshold:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+
+    InventoryUpdateRequest:
+      type: object
+      required: [tenant_id,hub_id,sku_id,quantity]
+      properties:
+        tenant_id:
+          type: string
+        hub_id:
+          type: string
+        sku_id:
+          type: string
+        quantity:
+          type: integer
+
+    SKU:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        sku_id:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

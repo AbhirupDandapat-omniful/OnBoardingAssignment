@@ -2,7 +2,6 @@ package models
 
 import "time"
 
-// Inventory mirrors the IMS /inventory response.
 type Inventory struct {
 	HubID            string    `json:"hub_id" bson:"hub_id"`
 	SKUID            string    `json:"sku_id" bson:"sku_id"`

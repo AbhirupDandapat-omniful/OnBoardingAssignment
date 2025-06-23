@@ -22,7 +22,6 @@ import (
 )
 
 func UploadCSV(c *gin.Context) {
-	// 1) Receive multipart file
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": i18n.Translate(c, "error.invalid_request")})
@@ -30,7 +29,6 @@ func UploadCSV(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 2) Bucket & key
 	bucket := config.GetString(c.Request.Context(), "s3.uploadBucket")
 	if bucket == "" {
 		log.DefaultLogger().Error("UploadCSV: upload bucket not configured")
@@ -40,7 +38,6 @@ func UploadCSV(c *gin.Context) {
 	key := fmt.Sprintf("uploads/%s-%s", time.Now().Format("20060102-150405"),
 		uuid.New().String()+"_"+header.Filename)
 
-	// 3) Init GoCommons S3 client (uses AWS_S3_ENDPOINT & region)
 	s3Client, err := gooms3.NewDefaultAWSS3Client()
 	if err != nil {
 		log.DefaultLogger().Errorf("UploadCSV: init S3 client: %v", err)
@@ -48,7 +45,6 @@ func UploadCSV(c *gin.Context) {
 		return
 	}
 
-	// 4) PutObject
 	putIn := &awss3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -60,7 +56,6 @@ func UploadCSV(c *gin.Context) {
 		return
 	}
 
-	// 5) Enqueue SQS event
 	publisher, err := store.NewBulkOrderPublisher(c.Request.Context())
 	if err != nil {
 		log.DefaultLogger().Errorf("UploadCSV: init publisher: %v", err)
@@ -79,6 +74,5 @@ func UploadCSV(c *gin.Context) {
 		return
 	}
 
-	// 6) Respond 202
 	c.JSON(http.StatusAccepted, gin.H{"bucket": bucket, "key": key})
 }
