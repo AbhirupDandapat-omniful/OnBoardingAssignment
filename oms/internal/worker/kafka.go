@@ -12,7 +12,6 @@ import (
 
 var kafkaLogger = log.DefaultLogger()
 
-// newProducer uses GoCommons’ Kafka.NewProducer (which does NOT return an error)
 func newProducer(ctx context.Context) *kafka.ProducerClient {
 	brokers := config.GetStringSlice(ctx, "kafka.brokers")
 	clientID := config.GetString(ctx, "kafka.clientId")
@@ -24,7 +23,6 @@ func newProducer(ctx context.Context) *kafka.ProducerClient {
 	)
 }
 
-// publishOrderCreated emits your OrderCreated event
 func publishOrderCreated(ctx context.Context, producer *kafka.ProducerClient, o *models.Order) {
 	payload, err := pubsub.NewEventInBytes(models.OrderCreated{
 		OrderID:   o.ID,

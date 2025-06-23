@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"path"
 	"strconv"
 	"time"
@@ -14,6 +15,7 @@ import (
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/omniful/go_commons/config"
 	commoncsv "github.com/omniful/go_commons/csv"
+	commonsHttp "github.com/omniful/go_commons/http"
 	"github.com/omniful/go_commons/log"
 	gooms3 "github.com/omniful/go_commons/s3"
 	"github.com/omniful/go_commons/sqs"
@@ -32,6 +34,9 @@ func (h *queueHandler) Process(ctx context.Context, msgs *[]sqs.Message) error {
 		logger.Errorf("failed to init S3 client: %v", err)
 		return err
 	}
+
+	transport := &http.Transport{}
+	httpClient, _ := commonsHttp.NewHTTPClient("csv-processor", "", transport)
 
 	producer := newProducer(ctx)
 
@@ -76,6 +81,7 @@ func (h *queueHandler) Process(ctx context.Context, msgs *[]sqs.Message) error {
 		var invalid [][]string
 
 		for _, row := range rows {
+
 			qty, err := strconv.Atoi(row[idx["quantity"]])
 			if err != nil || qty <= 0 {
 				invalid = append(invalid, row)
@@ -90,11 +96,28 @@ func (h *queueHandler) Process(ctx context.Context, msgs *[]sqs.Message) error {
 				Quantity: int64(qty),
 			}
 
-			if err := saveOrder(ctx, order); err != nil {
+			imsURL := fmt.Sprintf(
+				"%s/inventory?hub_id=%s&sku_ids=%s",
+				config.GetString(ctx, "ims.baseUrl"),
+				order.HubID,
+				order.SKUID,
+			)
+			var invs []models.Inventory
+			getReq := &commonsHttp.Request{
+				Url:     imsURL,
+				Timeout: 5 * time.Second,
+			}
+			if _, err := httpClient.Get(getReq, &invs); err != nil || len(invs) != 1 {
+				logger.Warnf("IMS validation failed for hub=%s sku=%s: %v", order.HubID, order.SKUID, err)
 				invalid = append(invalid, row)
 				continue
 			}
 
+			if err := saveOrder(ctx, order); err != nil {
+				logger.Errorf("saveOrder error: %v", err)
+				invalid = append(invalid, row)
+				continue
+			}
 			publishOrderCreated(ctx, producer, order)
 			logger.Infof("Processed order: %+v", order)
 		}

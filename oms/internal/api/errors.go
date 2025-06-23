@@ -14,14 +14,11 @@ import (
 
 var errorLogger = log.DefaultLogger()
 
-// DownloadErrorCSV streams back a previously-uploaded "errors/..." CSV from S3.
 func DownloadErrorCSV(c *gin.Context) {
-	// 1) Extract filename and compute S3 bucket/key
 	file := c.Param("file")
 	bucket := config.GetString(c.Request.Context(), "s3.uploadBucket")
 	key := fmt.Sprintf("errors/%s", file)
 
-	// 2) Initialize GoCommons S3 client
 	s3Client, err := gooms3.NewDefaultAWSS3Client()
 	if err != nil {
 		errorLogger.Errorf("DownloadErrorCSV: S3 init error: %v", err)
@@ -29,7 +26,6 @@ func DownloadErrorCSV(c *gin.Context) {
 		return
 	}
 
-	// 3) Fetch the object
 	out, err := s3Client.GetObject(c.Request.Context(), &awss3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
@@ -41,7 +37,6 @@ func DownloadErrorCSV(c *gin.Context) {
 	}
 	defer out.Body.Close()
 
-	// 4) Send as attachment, dereferencing ContentLength
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file))
 	length := int64(0)
 	if out.ContentLength != nil {

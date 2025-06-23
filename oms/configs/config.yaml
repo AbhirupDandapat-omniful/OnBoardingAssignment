@@ -39,7 +39,6 @@ kafka:
   version: "2.8.0"
   
 finalizer:
-  # Used by cmd/finalizer/main.go
   groupID:  "oms-finalizer-group"
   clientID: "oms-finalizer"
   topicCreated:     "order.created"

@@ -81,7 +81,6 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// 3) Persist to MongoDB
 	mongoURI := config.GetString(ctx, "mongo.uri")
 	cli, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
@@ -110,7 +109,6 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// 4) Emit Kafka event order.created
 	producer := kafka.NewProducer(
 		kafka.WithBrokers(config.GetStringSlice(ctx, "kafka.brokers")),
 		kafka.WithClientID(config.GetString(ctx, "kafka.clientId")+"-producer"),
@@ -135,6 +133,5 @@ func CreateOrder(c *gin.Context) {
 		log.DefaultLogger().Errorf("CreateOrder: publish order.created failed: %v", err)
 	}
 
-	// 5) Return the new order ID
 	c.JSON(stdhttp.StatusCreated, gin.H{"order_id": orderID})
 }

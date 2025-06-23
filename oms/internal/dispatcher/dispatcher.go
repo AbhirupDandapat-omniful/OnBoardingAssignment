@@ -45,25 +45,21 @@ func NewDispatcher(
 	}
 }
 
-// Process implements pubsub.IPubSubMessageHandler.
 func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 	eventType := msg.Topic
 
-	// decode Kafka payload
 	var payload map[string]interface{}
 	if err := json.Unmarshal(msg.Value, &payload); err != nil {
 		d.logger.Errorf("invalid JSON payload: %v", err)
 		return err
 	}
 
-	// ← **FIXED**: look for "tenant_id" not "tenantId"
 	tenantID, ok := payload["tenant_id"].(string)
 	if !ok {
 		d.logger.Errorf("missing tenant_id in payload")
 		return nil
 	}
 
-	// find matching, active webhooks
 	filter := bson.M{
 		"tenant_id": tenantID,
 		"is_active": true,
@@ -107,7 +103,7 @@ func (d *Dispatcher) Process(ctx context.Context, msg *pubsub.Message) error {
 			d.logger.Warnf("webhook POST failed (%s→%s): %v",
 				w.ID, w.CallbackURL, err,
 			)
-			// push to failedTopic
+
 			dead := map[string]interface{}{
 				"webhookId":   w.ID,
 				"event":       eventType,

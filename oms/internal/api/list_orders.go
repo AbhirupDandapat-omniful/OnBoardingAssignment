@@ -18,14 +18,12 @@ import (
 func ListOrders(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// 1) Parse filters
 	tenantID := c.Query("tenant_id")
 	sellerID := c.Query("seller_id")
 	status := c.Query("status")
-	from := c.Query("from") // RFC3339
+	from := c.Query("from")
 	to := c.Query("to")
 
-	// 2) Connect to MongoDB
 	mongoURI := config.GetString(ctx, "mongo.uri")
 	clientOpts := options.Client().ApplyURI(mongoURI)
 	mongoClient, err := mongo.Connect(ctx, clientOpts)
@@ -38,7 +36,6 @@ func ListOrders(c *gin.Context) {
 
 	coll := mongoClient.Database("omsdb").Collection("orders")
 
-	// 3) Build filter
 	filter := bson.M{}
 	if tenantID != "" {
 		filter["tenant_id"] = tenantID
@@ -60,7 +57,6 @@ func ListOrders(c *gin.Context) {
 		filter["created_at"] = dateFilter
 	}
 
-	// 4) Execute
 	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		log.DefaultLogger().Errorf("ListOrders: find error: %v", err)
@@ -69,7 +65,6 @@ func ListOrders(c *gin.Context) {
 	}
 	defer cursor.Close(ctx)
 
-	// 5) Decode
 	var orders []models.Order
 	for cursor.Next(ctx) {
 		var o models.Order
