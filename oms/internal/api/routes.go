@@ -16,4 +16,6 @@ func RegisterRoutes(r *gin.Engine) {
 	r.PUT("/webhooks/:id", updateWebhook)
 	r.DELETE("/webhooks/:id", deleteWebhook)
 
+	r.GET("/webhook-logs", ListWebhookLogs)
+
 }
