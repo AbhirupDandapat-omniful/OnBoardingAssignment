@@ -5,9 +5,13 @@ server:
   idleTimeout:  30s
 
 log:
+  format: "json"
   level: info
 
 env: local
+
+jwt:
+  secret: "your-dev-secret-here"
 
 postgres:
   primary:

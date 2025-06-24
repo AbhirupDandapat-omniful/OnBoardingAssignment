@@ -1,4 +1,3 @@
-// internal/finalizer/retry_integration_test.go
 package finalizer
 
 import (
