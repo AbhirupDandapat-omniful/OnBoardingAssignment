@@ -196,7 +196,24 @@ cd oms/cmd/dispatcher && go run main.go
 ---
 
 ## Screenshots
-(Add diagrams/screenshots illustrating each step: CSV upload, invalid rows view, finalizer log, webhook log, IMS UI)
+- OMS Server running: ![image](https://github.com/user-attachments/assets/00ea8f5c-2783-4a21-b35a-b7d9f3182e42)
+- IMS Server running: ![image](https://github.com/user-attachments/assets/1766805f-6a6e-4b78-b2f3-4ac50ca71468)
+- CSV_Processor(Worker) running: ![image](https://github.com/user-attachments/assets/8aa9a026-4dc5-4967-a908-9791491fa7ac)
+- Order Finalizer running: ![image](https://github.com/user-attachments/assets/e729da08-195c-4415-b67f-95f610ad741a)
+- Kafka Dispatcher running: ![image](https://github.com/user-attachments/assets/b02e8848-532a-4205-88df-9a7c7f29e029)
+- Images of each terminal after csv or single order is placed: ![image](https://github.com/user-attachments/assets/eca64f59-999f-44d7-bf03-e4be794e8ced)   Worker terminal one for valid order and another for invalid order:  ![image](https://github.com/user-attachments/assets/967f4664-140d-4397-b627-7e3f2d4f85d0)
+  Finalizer terminal one for sufficient quantity and another for insufficient quantity orders placement: ![image](https://github.com/user-attachments/assets/d357ae07-269a-4048-83ef-d6f8ddc9cef8)  Dispatcher terminal if order is suuficient in IMS and valid: ![image](https://github.com/user-attachments/assets/cf654d73-2854-4b49-a746-c2f1c87b6e10)
+  
+ WebHook URL Inbox after order.updated emitted: ![image](https://github.com/user-attachments/assets/2a9a13eb-a092-463d-8ef5-3bb8dd776677)   Inventory_transaction in IMS after order is finalized: ![image](https://github.com/user-attachments/assets/198cd983-6bf9-4d8b-9613-178b72612fdf)  WebHookErrorLogs in case of issue in webhook event emission: ![image](https://github.com/user-attachments/assets/184c48e3-8901-4d02-88cd-e883297ef40f)
+  
+
+ 
+
+
+
+
+
+
 
 ---
 
@@ -208,10 +225,6 @@ cd oms/cmd/dispatcher && go run main.go
 
 ---
 
-## License
-MIT License. See LICENSE.
-
----
 
 ## Contact
 For questions or support, open an issue or contact the maintainers. 
