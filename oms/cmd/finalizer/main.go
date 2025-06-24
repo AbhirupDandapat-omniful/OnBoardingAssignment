@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	// 1) Load config
+
 	if err := config.Init(10 * time.Second); err != nil {
 		log.DefaultLogger().Panicf("config init failed: %v", err)
 	}
@@ -27,7 +27,6 @@ func main() {
 
 	log.DefaultLogger().Info("Starting Order Finalizer…")
 
-	// 2) HTTP client for IMS
 	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	baseURL := config.GetString(ctx, "ims.baseUrl")
 	httpClient, err := commonsHttp.NewHTTPClient(
@@ -39,7 +38,6 @@ func main() {
 		log.DefaultLogger().Panicf("http client init failed: %v", err)
 	}
 
-	// 3) Mongo orders collection
 	mongoURI := config.GetString(ctx, "mongo.uri")
 	mcli, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
@@ -47,18 +45,15 @@ func main() {
 	}
 	ordersColl := mcli.Database("omsdb").Collection("orders")
 
-	// 4) Kafka producer (for publishing order.updated)
 	producer := kafka.NewProducer(
 		kafka.WithBrokers(config.GetStringSlice(ctx, "kafka.brokers")),
 		kafka.WithClientID(config.GetString(ctx, "kafka.clientId")+"-producer"),
 		kafka.WithKafkaVersion(config.GetString(ctx, "kafka.version")),
 	)
 
-	// 5) Build + wrap your handler
 	rawH := finalizer.NewHandler(ordersColl, httpClient, producer)
 	retryH := finalizer.NewRetryHandler(rawH, 3, 1*time.Second)
 
-	// 6) Kafka consumer (subscribe to order.created)
 	consumer := kafka.NewConsumer(
 		kafka.WithBrokers(config.GetStringSlice(ctx, "kafka.brokers")),
 		kafka.WithConsumerGroup(config.GetString(ctx, "finalizer.groupID")),
@@ -68,9 +63,7 @@ func main() {
 	topic := config.GetString(ctx, "finalizer.topicCreated")
 	consumer.RegisterHandler(topic, retryH)
 
-	// 7) Start
 	consumer.Subscribe(ctx)
 
-	// block forever
 	select {}
 }

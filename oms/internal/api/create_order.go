@@ -36,7 +36,6 @@ func CreateOrder(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 
-	// 1) Check inventory in IMS
 	baseURL := config.GetString(ctx, "ims.baseUrl")
 	url := fmt.Sprintf("%s/inventory?hub_id=%s&sku_ids=%s", baseURL, req.HubID, req.SKUID)
 
@@ -64,7 +63,6 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// 2) Reserve (decrement) inventory back to IMS
 	putReq := &commonsHttp.Request{
 		Url: baseURL + "/inventory",
 		Body: map[string]interface{}{

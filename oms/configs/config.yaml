@@ -5,7 +5,11 @@ server:
   idleTimeout:  60s
 
 log:
+  format: "json"
   level: debug
+
+jwt:
+  secret: "your-dev-secret-here"
 
 aws:
   region:          us-east-1
