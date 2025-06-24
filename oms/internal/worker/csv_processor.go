@@ -81,7 +81,6 @@ func (h *queueHandler) Process(ctx context.Context, msgs *[]sqs.Message) error {
 		var invalid [][]string
 
 		for _, row := range rows {
-
 			qty, err := strconv.Atoi(row[idx["quantity"]])
 			if err != nil || qty <= 0 {
 				invalid = append(invalid, row)
@@ -120,6 +119,32 @@ func (h *queueHandler) Process(ctx context.Context, msgs *[]sqs.Message) error {
 			}
 			publishOrderCreated(ctx, producer, order)
 			logger.Infof("Processed order: %+v", order)
+
+			txReq := struct {
+				TenantID        string `json:"tenant_id"`
+				HubID           string `json:"hub_id"`
+				SKUID           string `json:"sku_id"`
+				Delta           int64  `json:"delta"`
+				TransactionType string `json:"transaction_type"`
+				ReferenceID     string `json:"reference_id"`
+			}{
+				TenantID:        order.TenantID,
+				HubID:           order.HubID,
+				SKUID:           order.SKUID,
+				Delta:           -order.Quantity,
+				TransactionType: "reservation",
+				ReferenceID:     order.ID,
+			}
+			txBody, _ := json.Marshal(txReq)
+			postReq := &commonsHttp.Request{
+				Url:  config.GetString(ctx, "ims.baseUrl") + "/inventory/transactions",
+				Body: bytes.NewReader(txBody),
+
+				Timeout: 5 * time.Second,
+			}
+			if _, err := httpClient.Post(postReq, nil); err != nil {
+				logger.Warnf("failed to record inventory transaction for order %s: %v", order.ID, err)
+			}
 		}
 
 		if len(invalid) > 0 {

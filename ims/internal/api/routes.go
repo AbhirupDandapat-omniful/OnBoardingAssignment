@@ -27,6 +27,9 @@ func RegisterRoutes(r *gin.Engine) {
 	r.PUT("/inventory", upsertInventory)
 	r.GET("/inventory", listInventory)
 
+	r.POST("/inventory/transactions", createInventoryTransaction)
+	r.GET("/inventory/transactions", listInventoryTransactions)
+
 	r.POST("/webhooks", createWebhook)
 	r.GET("/webhooks/:id", getWebhook)
 	r.PUT("/webhooks/:id", updateWebhook)

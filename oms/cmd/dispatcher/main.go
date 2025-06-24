@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/abhirup.dandapat/oms/internal/dispatcher"
+	"github.com/abhirup.dandapat/oms/internal/webhooklogs"
 )
 
 func main() {
@@ -71,6 +72,11 @@ func main() {
 
 	consumer.RegisterHandler(createdTopic, retryDisp)
 	consumer.RegisterHandler(updatedTopic, retryDisp)
+
+	logColl := mcli.Database("omsdb").Collection("webhook_logs")
+	logHandler := webhooklogs.NewHandler(logColl)
+	retryLogHandler := dispatcher.NewRetryHandler(logHandler, 3, time.Second)
+	consumer.RegisterHandler(config.GetString(ctx, "kafka.topicWebhookFailed"), retryLogHandler)
 
 	// 8) Start consuming
 	consumer.Subscribe(ctx)
