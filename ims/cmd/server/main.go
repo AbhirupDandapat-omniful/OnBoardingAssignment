@@ -24,15 +24,24 @@ func main() {
 	}
 
 	store.InitPostgres(ctx)
-
 	store.InitRedis(ctx)
 
-	log.SetLevel(config.GetString(ctx, "log.level"))
-	port := config.GetInt(ctx, "server.port")
-	log.Infof("Starting IMS on port %d", port)
+	level := config.GetString(ctx, "log.level")
+	log.SetLevel(level)
+
+	logOpts := http.LoggingMiddlewareOptions{
+		Format:      config.GetString(ctx, "log.format"),
+		Level:       level,
+		LogRequest:  true,
+		LogResponse: true,
+		LogHeader:   false,
+	}
+
+	addr := fmt.Sprintf(":%d", config.GetInt(ctx, "server.port"))
+	log.Infof("IMS starting, listening on %s", addr)
 
 	srv := http.InitializeServer(
-		fmt.Sprintf(":%d", port),
+		addr,
 		config.GetDuration(ctx, "server.readTimeout"),
 		config.GetDuration(ctx, "server.writeTimeout"),
 		config.GetDuration(ctx, "server.idleTimeout"),
@@ -40,6 +49,7 @@ func main() {
 		env.RequestID(),
 		env.Middleware(config.GetString(ctx, "env")),
 		config.Middleware(),
+		http.RequestLogMiddleware(logOpts),
 	)
 
 	srv.Engine.GET("/health", health.HealthcheckHandler())
@@ -48,5 +58,7 @@ func main() {
 
 	if err := srv.StartServer("IMS"); err != nil {
 		log.Errorf("IMS shutdown error: %v", err)
+	} else {
+		log.Infof("IMS stopped gracefully")
 	}
 }

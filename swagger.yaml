@@ -14,6 +14,32 @@ servers:
 
 paths:
   ## OMS Endpoints
+
+  /auth/token:
+    post:
+      summary: Issue a JWT for API authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+      responses:
+        '200':
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
   /orders/upload:
     post:
       summary: Upload a CSV of orders
@@ -92,7 +118,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Order'
-
     post:
       summary: Create a single order
       requestBody:
@@ -148,7 +173,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Webhook'
-
     get:
       summary: List all webhooks
       responses:
@@ -212,7 +236,310 @@ paths:
         '204':
           description: Deleted
 
+  /webhook-logs:
+    get:
+      summary: List recent webhook delivery logs
+      responses:
+        '200':
+          description: A list of webhook log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookLog'
+
   ## IMS Endpoints
+
+  /tenants:
+    post:
+      summary: Create a tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantRequest'
+      responses:
+        '201':
+          description: Created tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+
+  /tenants/{id}:
+    get:
+      summary: Get a tenant by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Not found
+
+  /sellers:
+    post:
+      summary: Create a seller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerRequest'
+      responses:
+        '201':
+          description: Created seller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seller'
+
+  /sellers/{id}:
+    get:
+      summary: Get a seller by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The seller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seller'
+        '404':
+          description: Not found
+
+  /categories:
+    post:
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '201':
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
+  /categories/{id}:
+    get:
+      summary: Get a category by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Not found
+
+  /hubs:
+    get:
+      summary: List hubs with optional filters
+      parameters:
+        - in: query
+          name: tenant_id
+          schema:
+            type: string
+        - in: query
+          name: seller_id
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of hubs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hub'
+    post:
+      summary: Create a hub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HubRequest'
+      responses:
+        '201':
+          description: Created hub
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hub'
+
+  /hubs/{id}:
+    get:
+      summary: Get a hub by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The hub
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hub'
+        '404':
+          description: Not found
+    put:
+      summary: Update a hub by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HubRequest'
+      responses:
+        '200':
+          description: Updated hub
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hub'
+    delete:
+      summary: Delete a hub by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /skus:
+    get:
+      summary: List SKUs, optional tenant/seller/code filters
+      parameters:
+        - in: query
+          name: tenant_id
+          schema:
+            type: string
+        - in: query
+          name: seller_id
+          schema:
+            type: string
+        - in: query
+          name: sku_codes
+          schema:
+            type: string
+            description: comma-separated list
+      responses:
+        '200':
+          description: List of SKUs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SKU'
+    post:
+      summary: Create a SKU
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SKURequest'
+      responses:
+        '201':
+          description: Created SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKU'
+
+  /skus/{id}:
+    get:
+      summary: Get a SKU by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKU'
+        '404':
+          description: Not found
+    put:
+      summary: Update a SKU by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SKURequest'
+      responses:
+        '200':
+          description: Updated SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKU'
+    delete:
+      summary: Delete a SKU by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
   /inventory:
     get:
       summary: Get inventory for one or more SKUs in a hub
@@ -238,7 +565,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Inventory'
     put:
-      summary: Update (reserve) inventory for a SKU in a hub
+      summary: Upsert inventory for a SKU in a hub
       requestBody:
         required: true
         content:
@@ -252,33 +579,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Inventory'
-
-  /skus:
-    get:
-      summary: List SKUs, optionally filtered by tenant, seller, or codes
-      parameters:
-        - in: query
-          name: tenant_id
-          schema:
-            type: string
-        - in: query
-          name: seller_id
-          schema:
-            type: string
-        - in: query
-          name: sku_codes
-          schema:
-            type: string
-            description: comma-separated list of SKU codes
-      responses:
-        '200':
-          description: List of SKUs
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SKU'
 
 components:
   schemas:
@@ -307,7 +607,7 @@ components:
 
     CreateOrderRequest:
       type: object
-      required: [tenant_id,seller_id,hub_id,sku_id,quantity]
+      required: [tenant_id, seller_id, hub_id, sku_id, quantity]
       properties:
         tenant_id:
           type: string
@@ -323,7 +623,7 @@ components:
 
     BulkOrderRequest:
       type: object
-      required: [bucket,key]
+      required: [bucket, key]
       properties:
         bucket:
           type: string
@@ -344,7 +644,7 @@ components:
           type: array
           items:
             type: string
-            enum: [order.created,order.updated]
+            enum: [order.created, order.updated]
         headers:
           type: object
           additionalProperties:
@@ -360,7 +660,7 @@ components:
 
     WebhookRequest:
       type: object
-      required: [tenant_id,callback_url,events]
+      required: [tenant_id, callback_url, events]
       properties:
         tenant_id:
           type: string
@@ -371,7 +671,7 @@ components:
           type: array
           items:
             type: string
-            enum: [order.created,order.updated]
+            enum: [order.created, order.updated]
         headers:
           type: object
           additionalProperties:
@@ -379,11 +679,221 @@ components:
         is_active:
           type: boolean
 
-    Inventory:
+    WebhookLog:
       type: object
+      properties:
+        id:
+          type: string
+        webhook_id:
+          type: string
+        event:
+          type: string
+        payload:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TenantRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    Seller:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SellerRequest:
+      type: object
+      required: [tenant_id, name]
       properties:
         tenant_id:
           type: string
+        name:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CategoryRequest:
+      type: object
+      required: [tenant_id, name]
+      properties:
+        tenant_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    Hub:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        address:
+          type: string
+        contact_email:
+          type: string
+        contact_phone:
+          type: string
+        timezone:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    HubRequest:
+      type: object
+      required: [tenant_id, seller_id, name]
+      properties:
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        address:
+          type: string
+        contact_email:
+          type: string
+        contact_phone:
+          type: string
+        timezone:
+          type: string
+
+    SKU:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category_id:
+          type: string
+        weight:
+          type: number
+        weight_unit:
+          type: string
+        length:
+          type: number
+        width:
+          type: number
+        height:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SKURequest:
+      type: object
+      required: [tenant_id, seller_id, code, name]
+      properties:
+        tenant_id:
+          type: string
+        seller_id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category_id:
+          type: string
+        weight:
+          type: number
+        weight_unit:
+          type: string
+        length:
+          type: number
+        width:
+          type: number
+        height:
+          type: number
+
+    Inventory:
+      type: object
+      properties:
         hub_id:
           type: string
         sku_id:
@@ -402,33 +912,11 @@ components:
 
     InventoryUpdateRequest:
       type: object
-      required: [tenant_id,hub_id,sku_id,quantity]
+      required: [hub_id, sku_id, quantity]
       properties:
-        tenant_id:
-          type: string
         hub_id:
           type: string
         sku_id:
           type: string
         quantity:
           type: integer
-
-    SKU:
-      type: object
-      properties:
-        tenant_id:
-          type: string
-        seller_id:
-          type: string
-        sku_id:
-          type: string
-        code:
-          type: string
-        description:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
